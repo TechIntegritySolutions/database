@@ -1,31 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
-        #wrapper { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        img { max-width: 100%; height: auto; cursor: grab; }
-        img:active { cursor: grabbing; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            overflow: hidden; background: #0a0a0a; touch-action: none; 
+        }
+        #container { width: 100vw; height: 100vh; cursor: move; }
+        img { user-select: none; -webkit-user-drag: none; }
     </style>
 </head>
 <body>
 
-<div id="wrapper">
-    <img id="scene" src="https://database.techintegrity.hu/documents/M1-Page1.png">
+<div id="container">
+    <img id="image" src="https://database.techintegrity.hu/documents/M1-Page1.png">
 </div>
 
-<script>
-    const element = document.getElementById('scene');
-    const instance = panzoom(element, {
-        maxZoom: 10,        // Allows you to zoom in 10x to read tiny text
-        minZoom: 0.1,
-        bounds: true,       // Keeps it from flying off screen
-        boundsPadding: 0.1,
-        zoomDoubleClickSpeed: 1, // Disables annoying double-click zoom
-        smoothScroll: false // TURNS OFF THE "ICE CUBE" GLIDING
+<script type="module">
+    import Panzoom from 'https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/+fwd';
+
+    const elem = document.getElementById('image');
+    const panzoom = Panzoom(elem, {
+        maxScale: 20,           // 20x zoom. You can practically see the atoms.
+        minScale: 0.1,
+        contain: 'outside',     // Prevents it from getting lost
+        startScale: 1,
+        noStepFactor: true      // Makes zoom precise, not "jumpy"
     });
+
+    const parent = elem.parentElement;
+    
+    // This part ensures the mouse wheel zooms WHERE you are pointing
+    parent.addEventListener('wheel', (event) => {
+        panzoom.zoomWithWheel(event);
+    });
+
+    // Centers the image on load
+    setTimeout(() => {
+        panzoom.pan(0, 0, { relative: false });
+    }, 10);
 </script>
 </body>
 </html>
