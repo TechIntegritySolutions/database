@@ -26,13 +26,12 @@
         }
 
         img {
-            /* Changed origin to center for easier alignment */
             transform-origin: center; 
             will-change: transform;
             cursor: grab;
-            max-width: 90%;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: absolute;
+            transition: transform 0.1s ease-out;
         }
 
         img:active {
@@ -56,6 +55,13 @@
             border-radius: 50%;
             cursor: pointer;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: rgba(255,255,255,1);
         }
     </style>
 </head>
@@ -66,6 +72,7 @@
     </div>
 
     <div class="controls">
+        <button onclick="centerImage()" title="Reset View">↺</button>
         <button onclick="manualZoom(-0.5)">-</button>
         <button onclick="manualZoom(0.5)">+</button>
     </div>
@@ -82,30 +89,32 @@
         let isDragging = false;
 
         function centerImage() {
-            // Reset translation to 0,0 to let flexbox/absolute positioning center it initially
+            const targetWidth = window.innerWidth * 0.95;
+            scale = targetWidth / img.naturalWidth;
+
+            const scaledHeight = img.naturalHeight * scale;
+            if (scaledHeight > window.innerHeight) {
+                scale = (window.innerHeight * 0.95) / img.naturalHeight;
+            }
+
             pointX = 0;
             pointY = 0;
-            scale = 1;
             updateTransform();
         }
 
         function updateTransform() {
-            if (scale < 0.1) scale = 0.1;
+            if (scale < 0.01) scale = 0.01;
             if (scale > 50) scale = 50;
-            // Using translate3d for better performance
             img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
         }
 
         container.addEventListener('wheel', (e) => {
             e.preventDefault();
-
             const delta = -e.deltaY;
             const factor = delta > 0 ? 1.1 : 0.9;
             
             const newScale = scale * factor;
 
-            // Zoom relative to mouse position
-            // We calculate how much the mouse is offset from the center of the image
             pointX = e.clientX - window.innerWidth / 2 - (e.clientX - window.innerWidth / 2 - pointX) * factor;
             pointY = e.clientY - window.innerHeight / 2 - (e.clientY - window.innerHeight / 2 - pointY) * factor;
 
@@ -118,6 +127,7 @@
             startX = e.clientX - pointX;
             startY = e.clientY - pointY;
             img.style.cursor = 'grabbing';
+            img.style.transition = 'none'; 
         });
 
         window.addEventListener('mousemove', (e) => {
@@ -131,20 +141,20 @@
         window.addEventListener('mouseup', () => {
             isDragging = false;
             img.style.cursor = 'grab';
+            img.style.transition = 'transform 0.1s ease-out';
         });
 
         window.manualZoom = (delta) => {
             const factor = delta > 0 ? 1.2 : 0.8;
             scale *= factor;
-            // Keeps it centered during manual zoom
             pointX *= factor;
             pointY *= factor;
             updateTransform(); 
         };
 
         img.onload = centerImage;
-        // Fallback for cached images
         if (img.complete) centerImage();
+        window.addEventListener('resize', centerImage);
 
     </script>
 </body>
