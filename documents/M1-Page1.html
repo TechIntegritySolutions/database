@@ -1,29 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dokumentum</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/panzoom@9.4.0/dist/panzoom.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #111; overflow: hidden; }
-        #viewer { width: 100%; height: 100%; }
+        body, html { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #000; }
+        #wrapper { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        img { max-width: 100%; height: auto; cursor: grab; }
+        img:active { cursor: grabbing; }
     </style>
 </head>
 <body>
-    <div id="viewer"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
-    <script>
-        var viewer = OpenSeadragon({
-            id: "viewer",
-            prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
-            tileSources: {
-                type: 'image',
-                url: 'https://database.techintegrity.hu/documents/M1-Page1.png'
-            },
-            gestureSettingsMouse: { clickToZoom: true },
-            showNavigationControl: false,
-            scrollToZoom: true
-        });
-    </script>
+
+<div id="wrapper">
+    <img id="scene" src="https://database.techintegrity.hu/documents/M1-Page1.png">
+</div>
+
+<script>
+    const element = document.getElementById('scene');
+    const instance = panzoom(element, {
+        maxZoom: 10,        // Allows you to zoom in 10x to read tiny text
+        minZoom: 0.1,
+        bounds: true,       // Keeps it from flying off screen
+        boundsPadding: 0.1,
+        zoomDoubleClickSpeed: 1, // Disables annoying double-click zoom
+        smoothScroll: false // TURNS OFF THE "ICE CUBE" GLIDING
+    });
+</script>
 </body>
 </html>
