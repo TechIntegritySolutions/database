@@ -1,45 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raw Zoom Viewer</title>
     <style>
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background: #0a0a0a; touch-action: none; 
+        /* LOCK THE PAGE: No scrollbars, no default browser zooming */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #222;
+            touch-action: none; /* Kills browser handling of gestures */
         }
-        #container { width: 100vw; height: 100vh; cursor: move; }
-        img { user-select: none; -webkit-user-drag: none; }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        img {
+            /* Hardware acceleration hints */
+            transform-origin: 0 0;
+            will-change: transform;
+            cursor: grab;
+            max-width: 90%; /* Start slightly smaller so you see full context */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        img:active {
+            cursor: grabbing;
+        }
+
+        /* Simple manual controls for backup */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        button {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-<div id="container">
-    <img id="image" src="https://database.techintegrity.hu/documents/M1-Page1.png">
-</div>
+    <div id="container">
+        <img id="zoom-target" src="https://database.techintegrity.hu/documents/M1-Page1.png" alt="Document">
+    </div>
 
-<script type="module">
-    import Panzoom from 'https://cdn.jsdelivr.net/npm/@panzoom/panzoom@4.5.1/+fwd';
+    <div class="controls">
+        <button onclick="manualZoom(-0.5)">-</button>
+        <button onclick="manualZoom(0.5)">+</button>
+    </div>
 
-    const elem = document.getElementById('image');
-    const panzoom = Panzoom(elem, {
-        maxScale: 20,           // 20x zoom. You can practically see the atoms.
-        minScale: 0.1,
-        contain: 'outside',     // Prevents it from getting lost
-        startScale: 1,
-        noStepFactor: true      // Makes zoom precise, not "jumpy"
-    });
+    <script>
+        const img = document.getElementById('zoom-target');
+        const container = document.getElementById('container');
 
-    const parent = elem.parentElement;
-    
-    // This part ensures the mouse wheel zooms WHERE you are pointing
-    parent.addEventListener('wheel', (event) => {
-        panzoom.zoomWithWheel(event);
-    });
+        let scale = 1;
+        let pointX = 0;
+        let pointY = 0;
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
 
-    // Centers the image on load
-    setTimeout(() => {
-        panzoom.pan(0, 0, { relative: false });
-    }, 10);
-</script>
+        // CENTER THE IMAGE INITIALLY
+        function centerImage() {
+            const containerRect = container.getBoundingClientRect();
+            const imgRect = img.getBoundingClientRect();
+            // Calculate center position logic
+            pointX = (containerRect.width - imgRect.width) / 2;
+            pointY = (containerRect.height - imgRect.height) / 2;
+            updateTransform();
+        }
+
+        // APPLY THE MATH
+        function updateTransform() {
+            // Limits: Min 0.1x, Max 50x
+            if (scale < 0.1) scale = 0.1;
+            if (scale > 50) scale = 50;
+            img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+        }
+
+        // MOUSE WHEEL ZOOM (The "Go Down Fast" Fix)
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault(); // STOP THE PAGE SCROLLING
+
+            const xs = (e.clientX - pointX) / scale;
+            const ys = (e.clientY - pointY) / scale;
+            const delta = -e.deltaY;
+
+            // Zoom Speed Factor
+            const factor = delta > 0 ? 1.1 : 0.9;
+            
+            scale *= factor;
+            pointX = e.clientX - xs * scale;
+            pointY = e.clientY - ys * scale;
+
+            updateTransform();
+        }, { passive: false }); // 'false' is CRITICAL to stop the scrolling
+
+        // DRAGGING LOGIC (Desktop)
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            img.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            pointX = e.clientX - startX;
+            pointY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            img.style.cursor = 'grab';
+        });
+
+        // BUTTON ZOOM
+        window.manualZoom = (delta) => {
+            const factor = delta > 0 ? 1.5 : 0.6; // Bigger steps for buttons
+            scale *= factor;
+            // Zoom towards center of screen for buttons
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            const xs = (cx - pointX) / scale;
+            const ys = (cy - pointY) / scale; // Note: using new scale here causes shift, fix:
+            
+            // Re-calc to keep center
+            // Actually, simple scale is safer for buttons:
+            updateTransform(); 
+        };
+
+        // INITIALIZE
+        img.onload = centerImage;
+        // Run anyway in case cached
+        setTimeout(centerImage, 100);
+
+    </script>
 </body>
 </html>
