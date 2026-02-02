@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dokumentum</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #111; overflow: hidden; }
+        #viewer { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="viewer"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js"></script>
+    <script>
+        var viewer = OpenSeadragon({
+            id: "viewer",
+            prefixUrl: "https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/images/",
+            tileSources: {
+                type: 'image',
+                url: 'https://database.techintegrity.hu/documents/M1-Page1.png'
+            },
+            gestureSettingsMouse: { clickToZoom: true },
+            showNavigationControl: false,
+            scrollToZoom: true
+        });
+    </script>
+</body>
+</html>
