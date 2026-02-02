@@ -74,90 +74,87 @@
         const img = document.getElementById('zoom-target');
         const container = document.getElementById('container');
 
-        let scale = 1;
-        let pointX = 0;
-        let pointY = 0;
-        let startX = 0;
-        let startY = 0;
-        let isDragging = false;
+let scale = 1;
+let pointX = 0;
+let pointY = 0;
+let startX = 0;
+let startY = 0;
+let isDragging = false;
 
-        // CENTER THE IMAGE INITIALLY
-        function centerImage() {
-            const containerRect = container.getBoundingClientRect();
-            const imgRect = img.getBoundingClientRect();
-            // Calculate center position logic
-            pointX = (containerRect.width - imgRect.width) / 2;
-            pointY = (containerRect.height - imgRect.height) / 2;
-            updateTransform();
-        }
+function centerImage() {
+    // Get the actual rendered size of the image vs the window
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const imgWidth = img.offsetWidth;
+    const imgHeight = img.offsetHeight;
 
-        // APPLY THE MATH
-        function updateTransform() {
-            // Limits: Min 0.1x, Max 50x
-            if (scale < 0.1) scale = 0.1;
-            if (scale > 50) scale = 50;
-            img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-        }
+    // Calculate the exact center
+    scale = 1; 
+    pointX = (windowWidth / 2) - (imgWidth / 2);
+    pointY = (windowHeight / 2) - (imgHeight / 2);
 
-        // MOUSE WHEEL ZOOM (The "Go Down Fast" Fix)
-        container.addEventListener('wheel', (e) => {
-            e.preventDefault(); // STOP THE PAGE SCROLLING
+    updateTransform();
+}
 
-            const xs = (e.clientX - pointX) / scale;
-            const ys = (e.clientY - pointY) / scale;
-            const delta = -e.deltaY;
+function updateTransform() {
+    if (scale < 0.1) scale = 0.1;
+    if (scale > 50) scale = 50;
+    // Use translate first, then scale, to keep the anchor point clean
+    img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+}
 
-            // Zoom Speed Factor
-            const factor = delta > 0 ? 1.1 : 0.9;
-            
-            scale *= factor;
-            pointX = e.clientX - xs * scale;
-            pointY = e.clientY - ys * scale;
+container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const xs = (e.clientX - pointX) / scale;
+    const ys = (e.clientY - pointY) / scale;
+    const delta = -e.deltaY;
+    
+    // Smooth but snappy zoom factor
+    const factor = delta > 0 ? 1.1 : 0.9;
+    scale *= factor;
+    
+    pointX = e.clientX - xs * scale;
+    pointY = e.clientY - ys * scale;
+    updateTransform();
+}, { passive: false });
 
-            updateTransform();
-        }, { passive: false }); // 'false' is CRITICAL to stop the scrolling
+container.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    startX = e.clientX - pointX;
+    startY = e.clientY - pointY;
+    img.style.cursor = 'grabbing';
+});
 
-        // DRAGGING LOGIC (Desktop)
-        container.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-            img.style.cursor = 'grabbing';
-        });
+window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    pointX = e.clientX - startX;
+    pointY = e.clientY - startY;
+    updateTransform();
+});
 
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            e.preventDefault();
-            pointX = e.clientX - startX;
-            pointY = e.clientY - startY;
-            updateTransform();
-        });
+window.addEventListener('mouseup', () => {
+    isDragging = false;
+    img.style.cursor = 'grab';
+});
 
-        window.addEventListener('mouseup', () => {
-            isDragging = false;
-            img.style.cursor = 'grab';
-        });
+window.manualZoom = (delta) => {
+    const factor = delta > 0 ? 1.4 : 0.7;
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    const xs = (cx - pointX) / scale;
+    const ys = (cy - pointY) / scale;
+    scale *= factor;
+    pointX = cx - xs * scale;
+    pointY = cy - ys * scale;
+    updateTransform();
+};
 
-        // BUTTON ZOOM
-        window.manualZoom = (delta) => {
-            const factor = delta > 0 ? 1.5 : 0.6; // Bigger steps for buttons
-            scale *= factor;
-            // Zoom towards center of screen for buttons
-            const cx = window.innerWidth / 2;
-            const cy = window.innerHeight / 2;
-            const xs = (cx - pointX) / scale;
-            const ys = (cy - pointY) / scale; // Note: using new scale here causes shift, fix:
-            
-            // Re-calc to keep center
-            // Actually, simple scale is safer for buttons:
-            updateTransform(); 
-        };
+// Re-center if the window is resized
+window.addEventListener('resize', centerImage);
 
-        // INITIALIZE
-        img.onload = centerImage;
-        // Run anyway in case cached
-        setTimeout(centerImage, 100);
-
-    </script>
-</body>
-</html>
+// Initialize when image is loaded
+if (img.complete) {
+    centerImage();
+} else {
+    img.onload = centerImage;
+}
