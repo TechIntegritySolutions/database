@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="../logos/tis-icon_black.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dokumentum</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #222;
+            touch-action: none;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        img {
+            transform-origin: center; 
+            will-change: transform;
+            cursor: grab;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: absolute;
+            transition: transform 0.1s ease-out;
+        }
+
+        img:active {
+            cursor: grabbing;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        button {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            background: rgba(255,255,255,0.8);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: rgba(255,255,255,1);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <img id="zoom-target" src="https://database.techintegrity.hu/documents/M2-Page1.png" alt="Document">
+    </div>
+
+    <div class="controls">
+        <button onclick="centerImage()" title="Reset View">↺</button>
+        <button onclick="manualZoom(-0.5)">-</button>
+        <button onclick="manualZoom(0.5)">+</button>
+    </div>
+
+    <script>
+        const img = document.getElementById('zoom-target');
+        const container = document.getElementById('container');
+
+        let scale = 1;
+        let pointX = 0;
+        let pointY = 0;
+        let startX = 0;
+        let startY = 0;
+        let isDragging = false;
+
+        function centerImage() {
+            const targetWidth = window.innerWidth * 0.95;
+            scale = targetWidth / img.naturalWidth;
+
+            const scaledHeight = img.naturalHeight * scale;
+            if (scaledHeight > window.innerHeight) {
+                scale = (window.innerHeight * 0.95) / img.naturalHeight;
+            }
+
+            pointX = 0;
+            pointY = 0;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            if (scale < 0.01) scale = 0.01;
+            if (scale > 50) scale = 50;
+            img.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+        }
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = -e.deltaY;
+            const factor = delta > 0 ? 1.1 : 0.9;
+            
+            const newScale = scale * factor;
+
+            pointX = e.clientX - window.innerWidth / 2 - (e.clientX - window.innerWidth / 2 - pointX) * factor;
+            pointY = e.clientY - window.innerHeight / 2 - (e.clientY - window.innerHeight / 2 - pointY) * factor;
+
+            scale = newScale;
+            updateTransform();
+        }, { passive: false });
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            img.style.cursor = 'grabbing';
+            img.style.transition = 'none'; 
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            pointX = e.clientX - startX;
+            pointY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+            img.style.cursor = 'grab';
+            img.style.transition = 'transform 0.1s ease-out';
+        });
+
+        window.manualZoom = (delta) => {
+            const factor = delta > 0 ? 1.2 : 0.8;
+            scale *= factor;
+            pointX *= factor;
+            pointY *= factor;
+            updateTransform(); 
+        };
+
+        img.onload = centerImage;
+        if (img.complete) centerImage();
+        window.addEventListener('resize', centerImage);
+
+    </script>
+</body>
+</html>
