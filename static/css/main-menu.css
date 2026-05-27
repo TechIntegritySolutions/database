@@ -33,13 +33,13 @@
 .top-nav a:hover {
     color: #34A9DE;
 }
-.top-nav .portal-link {
+.top-nav .main-link {
     border: 1px solid #34A9DE;
     padding: 8px 18px;
     border-radius: 4px;
     background-color: rgba(52, 169, 222, 0.1);
 }
-.top-nav .portal-link:hover {
+.top-nav .main-link:hover {
     background-color: #34A9DE;
     color: white;
 }
